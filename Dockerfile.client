@@ -1,0 +1,35 @@
+# Client Dockerfile - for systems that capture audio
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+WORKDIR /app
+COPY MeetingTranscriptionAgent.csproj ./
+RUN dotnet restore
+
+COPY . ./
+RUN dotnet publish -c Release -o out
+
+# Runtime image for client
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+
+# Install audio libraries and FFmpeg for client audio capture
+RUN apt-get update && apt-get install -y \
+    alsa-utils \
+    libasound2 \
+    libasound2-dev \
+    pulseaudio \
+    pulseaudio-utils \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=build /app/out .
+
+# Set permissions for audio devices
+RUN usermod -a -G audio root
+
+# Set environment variables for audio
+ENV ALSA_PCM_CARD=0
+ENV ALSA_PCM_DEVICE=0
+
+# Default to client mode
+ENTRYPOINT ["dotnet", "MeetingTranscriptionAgent.dll", "client"]

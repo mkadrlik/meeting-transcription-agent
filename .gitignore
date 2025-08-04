@@ -1,0 +1,65 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# VS Windows
+*_i.c
+*_p.c
+*_h.c
+*_i.h
+*.i
+*.h
+*_p.h
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pdb
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpf.csproj
+*.vsixmanifest
+*.vsmdi
+*.psess
+*.pde
+*.svclog
+
+# Transcriptions (optional - comment out if you want to commit transcriptions)
+transcriptions/*
+!.gitkeep
+
+# Docker
+.dockerignore
