@@ -1,18 +1,53 @@
-version: '3.8'
-
 services:
-  meeting-transcription-agent:
+  # Meeting Transcription MCP Server
+  meeting-transcription:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: meeting-transcription-agent
+    environment:
+      # Local Whisper configuration
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
+      
+      # Ollama post-processing configuration
+      - OLLAMA_URL=${OLLAMA_URL:-}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama2}
+      
+      # Audio settings
+      - DEFAULT_SAMPLE_RATE=16000
+      - DEFAULT_CHANNELS=1
+      - DEFAULT_CHUNK_DURATION=30
+      
+      # Server settings
+      - MAX_CONCURRENT_SESSIONS=5
+      - SESSION_TIMEOUT=3600
+      - DEFAULT_TRANSCRIPTION_PROVIDER=whisper_local
+      - TRANSCRIPTION_CONFIDENCE_THRESHOLD=0.5
+      
+      # Logging
+      - LOG_LEVEL=INFO
+      - LOG_FILE=/app/logs/transcription.log
+      
+      # MCP Gateway connection (external)
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://host.docker.internal:8080}
     volumes:
-      - ./transcriptions:/app/transcriptions
+      # Mount host audio devices (Linux/Docker Desktop)
+      - /dev/snd:/dev/snd:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+      # Mount data directory for session storage
+      - ./data:/app/data
     devices:
+      # Allow access to audio devices
       - /dev/snd:/dev/snd
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - seccomp:unconfined
-    stdin_open: true
-    tty: true
+    privileged: true  # Required for audio device access
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Use host networking to connect to external MCP Gateway
+    network_mode: "bridge"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,65 +1,98 @@
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
 build/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Visual Studio
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
+# PyInstaller
+*.manifest
+*.spec
 
-# Visual Studio Code
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
 .vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.code-workspace
+.idea/
+*.swp
+*.swo
+*~
 
-# .NET Core
-project.lock.json
-project.fragment.lock.json
-artifacts/
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# VS Windows
-*_i.c
-*_p.c
-*_h.c
-*_i.h
-*.i
-*.h
-*_p.h
-*.ilk
-*.meta
-*.obj
-*.pch
-*.pdb
-*.rsp
-*.sbr
-*.tlb
-*.tli
-*.tlh
-*.tmp
-*.tmp_proj
-*_wpf.csproj
-*.vsixmanifest
-*.vsmdi
-*.psess
-*.pde
-*.svclog
-
-# Transcriptions (optional - comment out if you want to commit transcriptions)
-transcriptions/*
-!.gitkeep
+# Project specific
+logs/
+*.log
+data/
+*.wav
+*.mp3
+*.flac
+*.ogg
 
 # Docker
 .dockerignore
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Audio recordings and session data
+recordings/
+sessions/
+transcripts/

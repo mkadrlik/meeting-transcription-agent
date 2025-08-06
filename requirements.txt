@@ -1,0 +1,30 @@
+# Core MCP dependencies
+mcp>=1.0.0
+
+# Audio processing
+PyAudio>=0.2.11
+numpy>=1.24.0
+
+# Local Whisper transcription (CPU-only)
+openai-whisper>=20231117
+
+# HTTP requests for Ollama integration
+requests>=2.31.0
+
+# Configuration and environment
+python-dotenv>=1.0.0
+
+# Logging and utilities
+structlog>=23.0.0
+
+# Optional dependencies for enhanced audio processing
+# scipy>=1.10.0  # For advanced audio processing
+# librosa>=0.10.0  # For audio feature extraction
+# webrtcvad>=2.0.10  # For voice activity detection
+
+# Development dependencies (for testing and development)
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0

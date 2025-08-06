@@ -1,50 +1,48 @@
-# Use the official .NET 8.0 SDK image as the base
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Meeting Transcription Agent MCP Server Dockerfile
 
-# Set the working directory
-WORKDIR /app
+FROM python:3.11-slim
 
-# Copy the project files
-COPY MeetingTranscriptionAgent.csproj ./
-RUN dotnet restore
-
-# Copy the rest of the project
-COPY . ./
-
-# Build the project
-RUN dotnet publish -c Release -o out
-
-# Create the runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
-
-# Install audio libraries and FFmpeg for Linux audio recording
+# Install system dependencies for audio processing and Whisper
 RUN apt-get update && apt-get install -y \
+    portaudio19-dev \
+    python3-pyaudio \
     alsa-utils \
-    libasound2 \
-    libasound2-dev \
     pulseaudio \
-    pulseaudio-utils \
     ffmpeg \
+    build-essential \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the published output from the build stage
-COPY --from=build /app/out .
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt .
 
-# Create the transcriptions directory
-RUN mkdir -p transcriptions
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Set permissions for audio devices
-RUN usermod -a -G audio root
+# Copy source code
+COPY src/ ./src/
+COPY *.py ./
 
-# Set environment variables to help with audio library loading
-ENV ALSA_PCM_CARD=0
-ENV ALSA_PCM_DEVICE=0
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/data
 
-# Expose any necessary ports (if needed for MCP server)
-# EXPOSE 8080
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV LOG_LEVEL=INFO
+ENV LOG_FILE=/app/logs/transcription.log
+ENV DEFAULT_TRANSCRIPTION_PROVIDER=whisper_local
+ENV WHISPER_MODEL_SIZE=base
 
-# Set the entry point
-ENTRYPOINT ["dotnet", "MeetingTranscriptionAgent.dll"]
+# Create non-root user for security
+RUN useradd -m -u 1001 transcription && \
+    chown -R transcription:transcription /app
+USER transcription
+
+# Expose port for health checks (if needed)
+EXPOSE 8080
+
+# Default command to run the MCP server
+CMD ["python", "-m", "src.main"]
