@@ -64,10 +64,22 @@ Edit `.env` to point to your existing MCP Gateway:
 MCP_GATEWAY_URL=http://your-gateway-ip:8080
 ```
 
-### 4. Start the Transcription Agent
+### 4. Use Pre-built Image from GHCR
+
+The Docker image is automatically built and published to GitHub Container Registry:
 
 ```bash
-# Start only the transcription agent (connects to external gateway)
+# Pull the latest image
+docker pull ghcr.io/your-username/meeting-transcription-agent:latest
+
+# Or use a specific version
+docker pull ghcr.io/your-username/meeting-transcription-agent:v1.0.0
+```
+
+### 5. Start the Transcription Agent
+
+```bash
+# Start using pre-built image (default)
 docker-compose up -d
 
 # View logs
@@ -75,6 +87,16 @@ docker-compose logs -f meeting-transcription
 
 # Stop services
 docker-compose down
+```
+
+#### Alternative: Build Locally
+
+If you prefer to build the image locally:
+
+```bash
+# Edit docker-compose.yml to uncomment the build section
+# Then start with local build
+docker-compose up -d --build
 ```
 
 ### 4. Alternative: Local Development
