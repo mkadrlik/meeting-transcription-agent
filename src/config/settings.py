@@ -36,7 +36,7 @@ class Settings:
         self.config['TRANSCRIPTION_CONFIDENCE_THRESHOLD'] = float(os.getenv('TRANSCRIPTION_CONFIDENCE_THRESHOLD', '0.5'))
         
         # Docker and deployment settings
-        self.config['MCP_GATEWAY_URL'] = os.getenv('MCP_GATEWAY_URL', 'http://localhost:8080')
+        self.config['MCP_GATEWAY_URL'] = os.getenv('MCP_GATEWAY_URL', 'http://192.168.50.20:9000')
         
         # Logging settings
         self.config['LOG_LEVEL'] = os.getenv('LOG_LEVEL', 'INFO')

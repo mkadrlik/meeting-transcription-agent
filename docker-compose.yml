@@ -8,14 +8,23 @@ services:
     #   context: .
     #   dockerfile: Dockerfile
     environment:
+      # Fix Whisper cache permissions - use app directory instead of root
+      - HF_HOME=/app/.cache
+      - TRANSFORMERS_CACHE=/app/.cache
+      - WHISPER_CACHE_DIR=/app/.cache/whisper
+      - HOME=/app
+      
+      # Disable direct audio device access (use client bridge instead)  
+      - DISABLE_AUDIO_CAPTURE=true
+      
       # Local Whisper configuration
       - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
       
       # Ollama post-processing configuration
-      - OLLAMA_URL=${OLLAMA_URL:-}
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama2}
+      - OLLAMA_URL=${OLLAMA_URL:-http://192.168.50.15:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3-4b}
       
-      # Audio settings
+      # Audio settings (for client bridge mode only)
       - DEFAULT_SAMPLE_RATE=16000
       - DEFAULT_CHANNELS=1
       - DEFAULT_CHUNK_DURATION=30
@@ -31,18 +40,16 @@ services:
       - LOG_FILE=/app/logs/transcription.log
       
       # MCP Gateway connection (external)
-      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://host.docker.internal:8080}
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://192.168.50.20:9000}
     volumes:
-      # Mount host audio devices (Linux/Docker Desktop)
-      - /dev/snd:/dev/snd:ro
       # Mount logs directory
       - ./logs:/app/logs
       # Mount data directory for session storage
       - ./data:/app/data
-    devices:
-      # Allow access to audio devices
-      - /dev/snd:/dev/snd
-    privileged: true  # Required for audio device access
+      # Mount cache directory for Whisper models (writable)
+      - ./cache:/app/.cache
+    # Remove all audio device access - use host bridge instead
+    user: "1000:1000"  # Standard user without audio group
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]

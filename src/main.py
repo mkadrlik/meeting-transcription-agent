@@ -648,7 +648,7 @@ def create_server() -> Server:
                         "include_metadata": {
                             "type": "boolean",
                             "description": "Include metadata like timestamps and confidence scores",
-                            "default": false
+                            "default": "false"
                         }
                     },
                     "required": ["session_id"]

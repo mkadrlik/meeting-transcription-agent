@@ -60,6 +60,12 @@ class AudioCapture:
         self.pa: Optional[Any] = None  # PyAudio instance or None
         self.active_streams: Dict[str, AudioStream] = {}
         
+        # Check if audio capture is disabled (for Docker container mode)
+        import os
+        if os.getenv('DISABLE_AUDIO_CAPTURE', '').lower() == 'true':
+            logger.info("Audio capture disabled (DISABLE_AUDIO_CAPTURE=true) - using client bridge mode")
+            return
+        
         if not PYAUDIO_AVAILABLE:
             logger.warning("PyAudio not available. Audio capture will be limited.")
         else:

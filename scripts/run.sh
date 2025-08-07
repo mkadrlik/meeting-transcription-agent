@@ -82,7 +82,7 @@ case "${1:-start}" in
         docker compose up -d
         echo ""
         echo -e "${GREEN}Services started successfully!${NC}"docker mcp 
-        echo "- MCP Gateway: http://localhost:8080"
+        echo "- MCP Gateway: http://192.168.50.20:9000"
         echo "- Logs: docker compose logs -f"
         echo "- Status: ./scripts/run.sh status"
         ;;
