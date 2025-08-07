@@ -69,5 +69,5 @@ jobs:
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.build.outputs.digest }}
-          subject-path: '${{ github.workspace }}/meeting-transcription-agent'
+          subject-path: '${{ github.workspace }}'
           push-to-registry: true
