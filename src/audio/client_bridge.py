@@ -5,14 +5,10 @@ This module handles audio data received from MCP clients and processes it
 for transcription, since MCP servers don't have direct access to client hardware.
 """
 
-import asyncio
 import base64
-import json
 import logging
 import time
-from typing import Dict, Any, Optional
-import io
-import wave
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +17,9 @@ class ClientAudioBridge:
     
     def __init__(self):
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
-        self.audio_buffers: Dict[str, list] = {}
+        self.audio_buffers: Dict[str, List[Dict[str, Any]]] = {}
     
-    async def start_client_recording(self, session_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    def start_client_recording(self, session_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """Start a recording session that expects client-forwarded audio"""
         try:
             if session_id in self.active_sessions:
@@ -58,8 +54,8 @@ class ClientAudioBridge:
             logger.error(f"Failed to start client recording session {session_id}: {str(e)}")
             raise
     
-    async def receive_audio_chunk(self, session_id: str, audio_data: str, 
-                                metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def receive_audio_chunk(self, session_id: str, audio_data: str,
+                           metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Receive and process audio chunk from client"""
         try:
             if session_id not in self.active_sessions:
@@ -111,7 +107,7 @@ class ClientAudioBridge:
             logger.error(f"Failed to receive audio chunk for session {session_id}: {str(e)}")
             raise
     
-    async def stop_client_recording(self, session_id: str) -> Dict[str, Any]:
+    def stop_client_recording(self, session_id: str) -> Dict[str, Any]:
         """Stop client recording and return combined audio data"""
         try:
             if session_id not in self.active_sessions:
@@ -148,7 +144,7 @@ class ClientAudioBridge:
             logger.error(f"Failed to stop client recording session {session_id}: {str(e)}")
             raise
     
-    async def get_client_session_status(self, session_id: str) -> Dict[str, Any]:
+    def get_client_session_status(self, session_id: str) -> Dict[str, Any]:
         """Get status of client recording session"""
         if session_id not in self.active_sessions:
             raise ValueError(f"Session {session_id} not found")
@@ -174,7 +170,7 @@ class ClientAudioBridge:
         chunks = self.audio_buffers[session_id]
         return b''.join([chunk['data'] for chunk in chunks])
     
-    def cleanup_session(self, session_id: str):
+    def cleanup_session(self, session_id: str) -> None:
         """Clean up session data"""
         if session_id in self.active_sessions:
             del self.active_sessions[session_id]

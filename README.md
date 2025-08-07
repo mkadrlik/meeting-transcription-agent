@@ -170,27 +170,21 @@ The server automatically discovers available audio devices. For Docker deploymen
 ### Available Tools
 
 #### `start_recording`
-Start a new meeting recording session.
+Start a new meeting recording session (direct device access).
 
 **Parameters:**
 - `session_id` (string, required): Unique identifier for the session
 - `microphone_device` (string, required): Microphone device name or ID
-- `speaker_device` (string, optional): Speaker device name or ID
-- `sample_rate` (integer, optional): Audio sample rate (default: 16000)
-- `channels` (integer, optional): Number of audio channels (default: 1)
-- `chunk_duration` (integer, optional): Audio chunk duration in seconds (default: 30)
-- `transcription_provider` (string, optional): Override default provider (whisper_local/mock)
+- `speaker_device` (string, required): Speaker device name or ID
+
+**Note:** Audio technical parameters (sample_rate, channels, chunk_duration) are configured via environment variables for consistency.
 
 **Example:**
 ```json
 {
   "session_id": "meeting-2024-01-15-10-30",
   "microphone_device": "USB Microphone",
-  "speaker_device": "default",
-  "sample_rate": 16000,
-  "channels": 1,
-  "chunk_duration": 30,
-  "transcription_provider": "whisper_local"
+  "speaker_device": "Built-in Speakers"
 }
 ```
 
@@ -210,6 +204,47 @@ Get the current status of a recording session.
 List all available audio input and output devices.
 
 **Parameters:** None
+
+#### `get_device_selection_options`
+Get available audio devices formatted for easy selection before starting recording.
+
+**Parameters:**
+- `session_id` (string, required): Session ID for the planned recording
+
+**Returns:** Formatted list of available microphones and speakers with selection examples.
+
+**Example:**
+```json
+{
+  "session_id": "meeting-001"
+}
+```
+
+**Example Response:**
+```json
+{
+  "session_id": "meeting-001",
+  "available_microphones": [
+    {
+      "id": "USB Microphone",
+      "name": "Blue Yeti USB Microphone",
+      "description": "USB Audio Device"
+    }
+  ],
+  "available_speakers": [
+    {
+      "id": "Built-in Speakers",
+      "name": "MacBook Pro Speakers",
+      "description": "Built-in Audio"
+    }
+  ],
+  "workflow_instructions": {
+    "step1": "Choose a microphone from available_microphones list",
+    "step2": "Choose a speaker from available_speakers list",
+    "step3": "Call start_recording again with both device IDs specified"
+  }
+}
+```
 
 ### Client Audio Forwarding Tools
 
@@ -278,6 +313,31 @@ Get the current status of a client recording session.
 **Parameters:**
 - `session_id` (string, required): ID of the session to check
 
+### Export Tools
+
+#### `export_transcript`
+Export a session transcript to a file.
+
+**Parameters:**
+- `session_id` (string, required): ID of the session to export
+- `format` (string, optional): Export format ("json", "txt", or "srt", default: "json")
+- `file_path` (string, optional): Custom file path (if not provided, auto-generated)
+
+**Example:**
+```json
+{
+  "session_id": "meeting-2024-01-15-10-30",
+  "format": "txt",
+  "file_path": "/tmp/transcripts/meeting_summary.txt"
+}
+```
+
+#### `list_exported_transcripts`
+List all exported transcript files.
+
+**Parameters:**
+- `exports_dir` (string, optional): Directory to scan (default: "/tmp/transcripts")
+
 ### Available Resources
 
 #### `meeting://sessions/active`
@@ -290,21 +350,42 @@ Lists available audio input and output devices.
 
 ### Basic Meeting Transcription
 
+#### Option 1: Guided Device Selection (Recommended)
+
+1. **Get device selection options:**
+```bash
+mcp call get_device_selection_options '{
+  "session_id": "daily-standup-jan-15"
+}'
+```
+
+2. **Start recording with selected devices:**
+```bash
+# Use the device IDs from the previous response
+mcp call start_recording '{
+  "session_id": "daily-standup-jan-15",
+  "microphone_device": "USB Microphone",
+  "speaker_device": "Built-in Speakers"
+}'
+```
+
+#### Option 2: Direct Device Specification
+
 1. **List available audio devices:**
 ```bash
-# Using MCP client
 mcp call list_audio_devices
 ```
 
-2. **Start recording with local Whisper:**
+2. **Start recording with known device names:**
 ```bash
 mcp call start_recording '{
   "session_id": "daily-standup-jan-15",
   "microphone_device": "USB Microphone",
-  "speaker_device": "default",
-  "transcription_provider": "whisper_local"
+  "speaker_device": "Built-in Speakers"
 }'
 ```
+
+#### Common Workflow Steps
 
 3. **Check session status:**
 ```bash
@@ -320,6 +401,20 @@ mcp call stop_recording '{
 }'
 # If Ollama is configured, transcript will be automatically post-processed
 ```
+
+5. **Export transcript to file:**
+```bash
+mcp call export_transcript '{
+  "session_id": "daily-standup-jan-15",
+  "format": "txt"
+}'
+```
+
+6. **List exported transcripts:**
+```bash
+mcp call list_exported_transcripts
+```
+
 
 ### Transcription Provider Options
 

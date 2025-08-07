@@ -3,17 +3,17 @@ Configuration settings for the meeting transcription agent
 """
 
 import os
-from typing import Any, Optional
+from typing import Any, Dict, List
 
 class Settings:
     """Configuration settings manager"""
     
     def __init__(self):
         """Initialize settings from environment variables"""
-        self.config = {}
+        self.config: Dict[str, Any] = {}
         self._load_environment_variables()
     
-    def _load_environment_variables(self):
+    def _load_environment_variables(self) -> None:
         """Load configuration from environment variables"""
         # Local Whisper settings
         self.config['WHISPER_MODEL_SIZE'] = os.getenv('WHISPER_MODEL_SIZE', 'base')
@@ -46,7 +46,7 @@ class Settings:
         """Get a configuration value"""
         return self.config.get(key, default)
     
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> None:
         """Set a configuration value"""
         self.config[key] = value
     
@@ -54,7 +54,7 @@ class Settings:
         """Check if a configuration key exists"""
         return key in self.config
     
-    def get_audio_config(self) -> dict:
+    def get_audio_config(self) -> Dict[str, Any]:
         """Get audio-related configuration"""
         return {
             'sample_rate': self.get('DEFAULT_SAMPLE_RATE'),
@@ -62,7 +62,7 @@ class Settings:
             'chunk_duration': self.get('DEFAULT_CHUNK_DURATION')
         }
     
-    def get_transcription_config(self) -> dict:
+    def get_transcription_config(self) -> Dict[str, Any]:
         """Get transcription-related configuration"""
         return {
             'provider': self.get('DEFAULT_TRANSCRIPTION_PROVIDER'),
@@ -72,16 +72,16 @@ class Settings:
             'ollama_model': self.get('OLLAMA_MODEL')
         }
     
-    def validate_required_settings(self) -> list:
+    def validate_required_settings(self) -> List[str]:
         """Validate that required settings are present"""
-        errors = []
+        errors: List[str] = []
         
         # Local Whisper is the primary transcription provider
         # No API keys required for basic functionality
         
         return errors
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Return all settings as a dictionary"""
         return self.config.copy()
     

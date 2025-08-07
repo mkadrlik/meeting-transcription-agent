@@ -18,6 +18,7 @@ registry:
       - name: stop_recording
       - name: get_session_status
       - name: list_audio_devices
+      - name: get_device_selection_options
       - name: start_client_recording
       - name: send_audio_chunk
       - name: stop_client_recording

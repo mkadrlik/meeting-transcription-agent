@@ -4,22 +4,16 @@ Audio capture module for meeting transcription
 Handles microphone and speaker audio capture using PyAudio and system audio routing.
 """
 
-import asyncio
 import logging
 import threading
-import time
-import wave
-from typing import Dict, List, Any, Optional, AsyncGenerator
-import io
+from typing import Dict, List, Any, Optional, Union
 
 try:
     import pyaudio
-    import numpy as np
     PYAUDIO_AVAILABLE = True
 except ImportError:
     PYAUDIO_AVAILABLE = False
     pyaudio = None
-    np = None
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +24,9 @@ class AudioStream:
         self.session_id = session_id
         self.config = config
         self.is_recording = False
-        self.audio_buffer = []
-        self.stream = None
-        self.thread = None
+        self.audio_buffer: List[bytes] = []
+        self.stream: Optional[Any] = None  # PyAudio stream object or None
+        self.thread: Optional[threading.Thread] = None
         self.stop_event = threading.Event()
     
     def start(self):
@@ -63,7 +57,7 @@ class AudioCapture:
     
     def __init__(self, settings):
         self.settings = settings
-        self.pa = None
+        self.pa: Optional[Any] = None  # PyAudio instance or None
         self.active_streams: Dict[str, AudioStream] = {}
         
         if not PYAUDIO_AVAILABLE:
@@ -74,13 +68,17 @@ class AudioCapture:
     def _initialize_pyaudio(self):
         """Initialize PyAudio"""
         try:
-            self.pa = pyaudio.PyAudio()
-            logger.info("PyAudio initialized successfully")
+            if pyaudio is not None:
+                self.pa = pyaudio.PyAudio()
+                logger.info("PyAudio initialized successfully")
+            else:
+                logger.error("PyAudio module is not available")
+                self.pa = None
         except Exception as e:
             logger.error(f"Failed to initialize PyAudio: {str(e)}")
             self.pa = None
     
-    async def list_devices(self) -> Dict[str, List[Dict[str, Any]]]:
+    def list_devices(self) -> Dict[str, Union[List[Dict[str, Any]], str]]:
         """List available audio input and output devices"""
         if not self.pa:
             return {
@@ -108,13 +106,15 @@ class AudioCapture:
                     }
                     
                     # Input devices (microphones)
-                    if device_info.get('maxInputChannels', 0) > 0:
+                    max_input_channels = int(device_info.get('maxInputChannels', 0))
+                    if max_input_channels > 0:
                         input_devices.append(device_data.copy())
                     
                     # Output devices (speakers)
-                    if device_info.get('maxOutputChannels', 0) > 0:
+                    max_output_channels = int(device_info.get('maxOutputChannels', 0))
+                    if max_output_channels > 0:
                         output_device_data = device_data.copy()
-                        output_device_data['channels'] = device_info.get('maxOutputChannels', 0)
+                        output_device_data['channels'] = max_output_channels
                         output_devices.append(output_device_data)
                         
                 except Exception as e:
@@ -139,7 +139,8 @@ class AudioCapture:
         if stream.is_recording and in_data:
             stream.audio_buffer.append(in_data)
         
-        return (None, pyaudio.paContinue)
+        # Return tuple for PyAudio callback - using constant directly since pyaudio might be None
+        return (None, 0)  # 0 is paContinue constant value
     
     def _record_thread(self, stream: AudioStream):
         """Thread function for recording audio"""
@@ -154,12 +155,8 @@ class AudioCapture:
             # Try to find device by name or use as ID
             microphone_device = config['microphone_device']
             if isinstance(microphone_device, str) and microphone_device != 'default':
-                # Try to find device by name
-                devices = asyncio.run(self.list_devices())
-                for device in devices.get('input_devices', []):
-                    if device['name'] == microphone_device:
-                        device_id = device['id']
-                        break
+                # Try to find device by name using synchronous PyAudio calls
+                device_id = self._find_device_by_name(microphone_device)
                 
                 # If not found by name, try to parse as integer ID
                 if device_id is None:
@@ -170,16 +167,20 @@ class AudioCapture:
                         device_id = None
             
             # Open audio stream
-            audio_stream = self.pa.open(
-                format=pyaudio.paInt16,
-                channels=config.get('channels', 1),
-                rate=config.get('sample_rate', 16000),
-                input=True,
-                input_device_index=device_id,
-                frames_per_buffer=1024,
-                stream_callback=lambda in_data, frame_count, time_info, status: 
-                    self._audio_callback(in_data, frame_count, time_info, status, stream)
-            )
+            if pyaudio is not None:
+                audio_stream = self.pa.open(
+                    format=pyaudio.paInt16,
+                    channels=config.get('channels', 1),
+                    rate=config.get('sample_rate', 16000),
+                    input=True,
+                    input_device_index=device_id,
+                    frames_per_buffer=1024,
+                    stream_callback=lambda in_data, frame_count, time_info, status:
+                        self._audio_callback(in_data, frame_count, time_info, status, stream)
+                )
+            else:
+                logger.error("PyAudio not available for stream creation")
+                return
             
             stream.stream = audio_stream
             audio_stream.start_stream()
@@ -257,6 +258,30 @@ class AudioCapture:
                 logger.error(f"Error terminating PyAudio: {str(e)}")
 
 
+    def _find_device_by_name(self, device_name: str) -> Optional[int]:
+        """Find audio device by name using synchronous PyAudio calls"""
+        if not self.pa:
+            return None
+        
+        try:
+            device_count = self.pa.get_device_count()
+            
+            for i in range(device_count):
+                try:
+                    device_info = self.pa.get_device_info_by_index(i)
+                    if device_info.get('name') == device_name and int(device_info.get('maxInputChannels', 0)) > 0:
+                        return i
+                except Exception as e:
+                    logger.warning(f"Error getting info for device {i}: {str(e)}")
+                    continue
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error finding device by name: {str(e)}")
+            return None
+
+
 class MockAudioCapture(AudioCapture):
     """Mock audio capture for testing when PyAudio is not available"""
     
@@ -265,7 +290,7 @@ class MockAudioCapture(AudioCapture):
         self.active_streams: Dict[str, AudioStream] = {}
         logger.info("Using mock audio capture (PyAudio not available)")
     
-    async def list_devices(self) -> Dict[str, List[Dict[str, Any]]]:
+    def list_devices(self) -> Dict[str, Union[List[Dict[str, Any]], str]]:
         """Return mock device list"""
         return {
             "input_devices": [

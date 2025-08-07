@@ -9,8 +9,6 @@ import json
 import logging
 import time
 from typing import Dict, List, Any, Optional, AsyncGenerator
-import io
-import wave
 
 try:
     import whisper
@@ -31,7 +29,7 @@ logger = logging.getLogger(__name__)
 class TranscriptionResult:
     """Represents a transcription result"""
     
-    def __init__(self, text: str, confidence: float = 0.0, timestamp: float = None, 
+    def __init__(self, text: str, confidence: float = 0.0, timestamp: Optional[float] = None,
                  speaker_id: Optional[str] = None):
         self.text = text
         self.confidence = confidence
@@ -65,16 +63,19 @@ class LocalWhisperProvider(TranscriptionProvider):
     def __init__(self, model_size: str = "base"):
         if not WHISPER_LOCAL_AVAILABLE:
             raise RuntimeError("Whisper library not available")
-        
+
         self.model_size = model_size
-        self.model = None
+        self.model: Optional[Any] = None
         self._load_model()
     
-    def _load_model(self):
+    def _load_model(self) -> None:
         """Load the Whisper model"""
         try:
-            self.model = whisper.load_model(self.model_size)
-            logger.info(f"Loaded Whisper model: {self.model_size}")
+            if whisper is not None:
+                self.model = whisper.load_model(self.model_size)
+                logger.info(f"Loaded Whisper model: {self.model_size}")
+            else:
+                raise RuntimeError("Whisper module not available")
         except Exception as e:
             logger.error(f"Failed to load Whisper model: {str(e)}")
             raise
@@ -166,12 +167,15 @@ Cleaned transcript:"""
                 }
             }
             
-            response = await asyncio.to_thread(
-                requests.post,
-                f"{self.ollama_url}/api/generate",
-                json=payload,
-                timeout=30
-            )
+            if requests is not None:
+                response = await asyncio.to_thread(
+                    requests.post,
+                    f"{self.ollama_url}/api/generate",
+                    json=payload,
+                    timeout=30
+                )
+            else:
+                raise RuntimeError("Requests module not available")
             
             if response.status_code == 200:
                 result = response.json()
@@ -217,12 +221,12 @@ class TranscriptionService:
         self.settings = settings
         self.providers: Dict[str, TranscriptionProvider] = {}
         self.session_transcripts: Dict[str, List[TranscriptionResult]] = {}
-        self.ollama_post_processor = None
+        self.ollama_post_processor: Optional[OllamaPostProcessor] = None
         
         self._initialize_providers()
         self._initialize_post_processor()
     
-    def _initialize_providers(self):
+    def _initialize_providers(self) -> None:
         """Initialize available transcription providers"""
         # Try to initialize Local Whisper provider
         if WHISPER_LOCAL_AVAILABLE:
@@ -240,7 +244,7 @@ class TranscriptionService:
         if not self.providers:
             logger.warning("No transcription providers available")
     
-    def _initialize_post_processor(self):
+    def _initialize_post_processor(self) -> None:
         """Initialize Ollama post-processor if configured"""
         ollama_url = self.settings.get('OLLAMA_URL')
         ollama_model = self.settings.get('OLLAMA_MODEL', 'llama2')
@@ -346,7 +350,7 @@ class TranscriptionService:
             'provider': getattr(transcript_results[0], 'provider', 'unknown') if transcript_results else 'unknown'
         }
     
-    async def clear_session_transcript(self, session_id: str):
+    async def clear_session_transcript(self, session_id: str) -> None:
         """Clear transcript data for a session"""
         if session_id in self.session_transcripts:
             del self.session_transcripts[session_id]
