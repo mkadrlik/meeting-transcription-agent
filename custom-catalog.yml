@@ -1,0 +1,159 @@
+name: custom-catalog
+displayName: Docker MCP Custom Catalog
+registry:
+  meeting-transcription-agent:
+    description: Local CPU-only meeting transcription with client-side audio forwarding and server-side processing. Features local Whisper models and optional Ollama post-processing for enhanced transcripts. Supports both direct device access and client audio forwarding.
+    title: Meeting Transcription Agent
+    type: server
+    dateAdded: "2025-08-06T16:12:00Z"
+    image: ghcr.io/mkadrlik/meeting-transcription-agent:latest
+    ref: ""
+    readme: https://github.com/mkadrlik/meeting-transcription-agent/blob/main/README.md
+    toolsUrl: ""
+    source: https://github.com/mkadrlik/meeting-transcription-agent
+    upstream: https://github.com/mkadrlik/meeting-transcription-agent
+    icon: ""
+    tools:
+      - name: start_recording
+      - name: stop_recording
+      - name: get_session_status
+      - name: list_audio_devices
+      - name: start_client_recording
+      - name: send_audio_chunk
+      - name: stop_client_recording
+      - name: get_client_session_status
+      - name: get_audio_instructions
+      - name: export_transcript
+      - name: list_exported_transcripts
+    secrets: []
+    env:
+      - name: WHISPER_MODEL_SIZE
+        value: '{{meeting-transcription.whisper_model_size}}'
+      - name: OLLAMA_URL
+        value: '{{meeting-transcription.ollama_url}}'
+      - name: OLLAMA_MODEL
+        value: '{{meeting-transcription.ollama_model}}'
+      - name: DEFAULT_SAMPLE_RATE
+        value: '{{meeting-transcription.audio.sample_rate}}'
+      - name: DEFAULT_CHANNELS
+        value: '{{meeting-transcription.audio.channels}}'
+      - name: DEFAULT_CHUNK_DURATION
+        value: '{{meeting-transcription.audio.chunk_duration}}'
+      - name: MAX_CONCURRENT_SESSIONS
+        value: '{{meeting-transcription.server.max_sessions}}'
+      - name: SESSION_TIMEOUT
+        value: '{{meeting-transcription.server.session_timeout}}'
+      - name: DEFAULT_TRANSCRIPTION_PROVIDER
+        value: '{{meeting-transcription.transcription.provider}}'
+      - name: TRANSCRIPTION_CONFIDENCE_THRESHOLD
+        value: '{{meeting-transcription.transcription.confidence_threshold}}'
+      - name: LOG_LEVEL
+        value: '{{meeting-transcription.logging.level}}'
+    prompts: 0
+    resources:
+      meeting://sessions/active:
+        description: List of currently active recording sessions
+        mimeType: application/json
+      meeting://devices/audio:
+        description: Available audio input and output devices
+        mimeType: application/json
+    config:
+      - name: meeting-transcription
+        description: Configuration for meeting transcription agent
+        type: object
+        properties:
+          whisper_model_size:
+            type: string
+            enum: ["tiny", "base", "small", "medium", "large"]
+            default: "base"
+            description: Local Whisper model size (tiny=fastest, large=most accurate)
+          ollama_url:
+            type: string
+            description: URL of Ollama instance for transcript post-processing
+            example: "http://192.168.1.100:11434"
+          ollama_model:
+            type: string
+            default: "llama2"
+            description: Ollama model name for transcript enhancement
+          audio:
+            type: object
+            properties:
+              sample_rate:
+                type: integer
+                default: 16000
+                description: Audio sample rate in Hz
+              channels:
+                type: integer
+                default: 1
+                description: Number of audio channels
+              chunk_duration:
+                type: integer
+                default: 30
+                description: Audio chunk duration in seconds
+            required:
+              - sample_rate
+              - channels
+              - chunk_duration
+          server:
+            type: object
+            properties:
+              max_sessions:
+                type: integer
+                default: 5
+                description: Maximum concurrent recording sessions
+              session_timeout:
+                type: integer
+                default: 3600
+                description: Session timeout in seconds
+            required:
+              - max_sessions
+              - session_timeout
+          transcription:
+            type: object
+            properties:
+              provider:
+                type: string
+                enum: ["whisper_local", "mock"]
+                default: "whisper_local"
+                description: Transcription provider to use
+              confidence_threshold:
+                type: number
+                default: 0.5
+                minimum: 0.0
+                maximum: 1.0
+                description: Minimum confidence threshold for transcriptions
+            required:
+              - provider
+              - confidence_threshold
+          logging:
+            type: object
+            properties:
+              level:
+                type: string
+                enum: ["DEBUG", "INFO", "WARNING", "ERROR"]
+                default: "INFO"
+                description: Logging level
+            required:
+              - level
+        required:
+          - whisper_model_size
+          - audio
+          - server
+          - transcription
+          - logging
+    metadata:
+      pulls: 0
+      stars: 0
+      githubStars: 0
+      category: audio
+      tags:
+        - transcription
+        - audio
+        - meeting
+        - whisper
+        - local
+        - cpu
+        - ollama
+        - speech-to-text
+      license: MIT License
+      owner: mkadrlik

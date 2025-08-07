@@ -1,20 +1,49 @@
 # Meeting Transcription Agent MCP Server
 
-A Python MCP (Model Context Protocol) server that provides real-time meeting transcription capabilities with audio capture from user-selected microphones and speakers. This server runs behind a Docker MCP Gateway and integrates with various transcription services.
+A Python MCP (Model Context Protocol) server that provides real-time meeting transcription capabilities with both direct device access and client-side audio forwarding. This server runs behind a Docker MCP Gateway and integrates with various transcription services.
 
 ## Features
 
-- **Real-time Audio Capture**: Capture audio from user-selected microphones and speakers
+- **Dual Audio Capture Modes**:
+  - Direct device access for local environments
+  - Client-side audio forwarding for containerized deployments
 - **Local CPU-only Transcription**: Uses local Whisper models without requiring external APIs
 - **Ollama Post-Processing**: Enhances transcripts using your self-hosted Ollama instance
 - **Session Management**: Handle multiple concurrent recording sessions
 - **Audio Device Discovery**: List and select from available audio input/output devices
+- **Client Audio Forwarding**: Receive audio data from web browsers and desktop applications
 - **Docker Integration**: Runs seamlessly behind Docker MCP Gateway
 - **Flexible Configuration**: Environment-based configuration with sensible defaults
 - **Export Capabilities**: Export transcripts in JSON, TXT, and SRT formats
 
 ## Architecture
 
+### Client-Side Audio Forwarding (Recommended for Docker)
+```
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────────┐
+│   MCP Client    │◄──►│ External MCP    │◄──►│ Transcription Agent  │
+│ + Audio Capture │    │ Gateway         │    │     (Docker)         │
+│   - Microphone  │    │                 │    │                      │
+│   - Web Audio   │    │                 │    │                      │
+│   - Base64      │    │                 │    │                      │
+└─────────────────┘    └─────────────────┘    └──────────────────────┘
+         │                                                    │
+         │ Audio Chunks                          ┌────────────▼────────────┐
+         └──────────────────────────────────────►│ Client Audio Bridge     │
+                                                 │ - Receive audio chunks  │
+                                                 │ - Session management    │
+                                                 │ - Audio reconstruction  │
+                                                 └────────────┬────────────┘
+                                                              │
+                                                 ┌────────────▼────────────┐
+                                                 │  Transcription Service  │
+                                                 │  - Local Whisper        │
+                                                 │  - Ollama Enhanced      │
+                                                 │  - Mock Provider        │
+                                                 └─────────────────────────┘
+```
+
+### Direct Device Access (Legacy)
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌──────────────────────┐
 │   MCP Client    │◄──►│ External MCP    │◄──►│ Transcription Agent  │
@@ -182,6 +211,73 @@ List all available audio input and output devices.
 
 **Parameters:** None
 
+### Client Audio Forwarding Tools
+
+#### `get_audio_instructions`
+Get instructions for implementing client-side audio capture.
+
+**Parameters:**
+- `instruction_type` (string, optional): Type of instructions ("web_audio" or "desktop", default: "web_audio")
+
+**Example:**
+```json
+{
+  "instruction_type": "web_audio"
+}
+```
+
+#### `start_client_recording`
+Start a recording session that receives audio from the client.
+
+**Parameters:**
+- `session_id` (string, required): Unique identifier for the session
+- `sample_rate` (integer, optional): Audio sample rate (default: 16000)
+- `channels` (integer, optional): Number of audio channels (default: 1)
+- `chunk_duration` (integer, optional): Audio chunk duration in seconds (default: 5)
+
+**Example:**
+```json
+{
+  "session_id": "client-meeting-001",
+  "sample_rate": 16000,
+  "channels": 1,
+  "chunk_duration": 5
+}
+```
+
+#### `send_audio_chunk`
+Send an audio chunk from the client to the server.
+
+**Parameters:**
+- `session_id` (string, required): ID of the recording session
+- `audio_data` (string, required): Base64-encoded audio data
+- `metadata` (object, optional): Metadata about the audio chunk
+
+**Example:**
+```json
+{
+  "session_id": "client-meeting-001",
+  "audio_data": "UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=",
+  "metadata": {
+    "timestamp": 1705123456.789,
+    "format": "wav",
+    "size": 32000
+  }
+}
+```
+
+#### `stop_client_recording`
+Stop client recording and get the final transcript.
+
+**Parameters:**
+- `session_id` (string, required): ID of the session to stop
+
+#### `get_client_session_status`
+Get the current status of a client recording session.
+
+**Parameters:**
+- `session_id` (string, required): ID of the session to check
+
 ### Available Resources
 
 #### `meeting://sessions/active`
@@ -246,14 +342,64 @@ mcp call start_recording '{
 }'
 ```
 
+### Client Audio Forwarding (Recommended for Docker)
+
+For containerized deployments where direct audio device access is limited:
+
+1. **Get client implementation instructions:**
+```bash
+mcp call get_audio_instructions '{
+  "instruction_type": "web_audio"
+}'
+```
+
+2. **Start client recording session:**
+```bash
+mcp call start_client_recording '{
+  "session_id": "client-meeting-001",
+  "sample_rate": 16000,
+  "channels": 1,
+  "chunk_duration": 5
+}'
+```
+
+3. **Send audio chunks from client:**
+```bash
+# Client captures audio and sends base64-encoded chunks
+mcp call send_audio_chunk '{
+  "session_id": "client-meeting-001",
+  "audio_data": "UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=",
+  "metadata": {
+    "timestamp": 1705123456.789,
+    "format": "wav",
+    "size": 32000
+  }
+}'
+```
+
+4. **Stop and get transcript:**
+```bash
+mcp call stop_client_recording '{
+  "session_id": "client-meeting-001"
+}'
+```
+
+**For detailed client implementation examples**, see [`CLIENT_AUDIO_GUIDE.md`](./CLIENT_AUDIO_GUIDE.md) which includes:
+- Complete JavaScript web browser implementation
+- Python desktop application example
+- Audio format requirements and best practices
+
 ### Advanced Configuration
 
 For production deployments with specific transcription providers:
 
 ```bash
-# Set OpenAI API key for Whisper transcription
-export OPENAI_API_KEY="your-openai-api-key"
-export DEFAULT_TRANSCRIPTION_PROVIDER="openai"
+# Configure Whisper model size for performance/accuracy trade-off
+export WHISPER_MODEL_SIZE="small"
+
+# Configure Ollama for transcript enhancement
+export OLLAMA_URL="http://your-ollama-server:11434"
+export OLLAMA_MODEL="llama2"
 
 # Start with enhanced configuration
 docker-compose up -d
