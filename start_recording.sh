@@ -57,6 +57,56 @@ start_mcp_server() {
     return 1
 }
 
+# Function to check system dependencies
+check_system_deps() {
+    echo -e "${BLUE}🔍 Checking system dependencies...${NC}"
+    local missing_deps=()
+    
+    # Check for PortAudio headers
+    if ! pkg-config --exists portaudio-2.0 2>/dev/null && [ ! -f "/usr/include/portaudio.h" ] && [ ! -f "/usr/local/include/portaudio.h" ]; then
+        missing_deps+=("portaudio development headers")
+    fi
+    
+    # Check for Python development headers
+    local python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    if [ ! -f "/usr/include/python${python_version}/Python.h" ] && [ ! -f "/usr/local/include/python${python_version}/Python.h" ]; then
+        missing_deps+=("python${python_version} development headers")
+    fi
+    
+    if [ ${#missing_deps[@]} -eq 0 ]; then
+        echo -e "${GREEN}✅ All system dependencies are installed${NC}"
+        return 0
+    fi
+    
+    echo -e "${RED}❌ Missing system dependencies:${NC}"
+    for dep in "${missing_deps[@]}"; do
+        echo -e "${RED}  - $dep${NC}"
+    done
+    echo ""
+    echo -e "${YELLOW}💡 Install missing dependencies:${NC}"
+    
+    # Detect package manager and provide appropriate commands
+    if command -v apt >/dev/null 2>&1; then
+        echo -e "${BLUE}For Ubuntu/Debian:${NC}"
+        echo -e "${GREEN}sudo apt update && sudo apt install -y portaudio19-dev python${python_version}-dev${NC}"
+    elif command -v yum >/dev/null 2>&1; then
+        echo -e "${BLUE}For CentOS/RHEL:${NC}"
+        echo -e "${GREEN}sudo yum install -y portaudio-devel python${python_version}-devel${NC}"
+    elif command -v dnf >/dev/null 2>&1; then
+        echo -e "${BLUE}For Fedora:${NC}"
+        echo -e "${GREEN}sudo dnf install -y portaudio-devel python${python_version}-devel${NC}"
+    elif command -v pacman >/dev/null 2>&1; then
+        echo -e "${BLUE}For Arch Linux:${NC}"
+        echo -e "${GREEN}sudo pacman -S portaudio python-dev${NC}"
+    else
+        echo -e "${YELLOW}Please install PortAudio and Python development headers for your distribution${NC}"
+    fi
+    echo ""
+    echo -e "${YELLOW}Then run this script again.${NC}"
+    
+    return 1
+}
+
 # Function to setup virtual environment
 setup_venv() {
     local venv_dir=".venv-host"
@@ -113,6 +163,12 @@ start_audio_bridge() {
     echo ""
     echo -e "${YELLOW}Press Ctrl+C when your meeting is finished${NC}"
     echo ""
+    
+    # Check system dependencies first
+    if ! check_system_deps; then
+        echo -e "${RED}❌ System dependencies not met${NC}"
+        exit 1
+    fi
     
     # Setup virtual environment
     if ! setup_venv; then
