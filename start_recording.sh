@@ -57,6 +57,24 @@ start_mcp_server() {
     return 1
 }
 
+# Function to setup virtual environment
+setup_venv() {
+    local venv_dir=".venv-host"
+    
+    if [ ! -d "$venv_dir" ]; then
+        echo -e "${BLUE}🔧 Creating virtual environment...${NC}"
+        python3 -m venv "$venv_dir"
+    fi
+    
+    echo -e "${BLUE}🔄 Activating virtual environment...${NC}"
+    source "$venv_dir/bin/activate"
+    
+    # Upgrade pip to latest version
+    pip install --upgrade pip >/dev/null 2>&1
+    
+    return 0
+}
+
 # Function to start audio bridge
 start_audio_bridge() {
     echo -e "${BLUE}🎤🔊 Starting DUAL audio bridge...${NC}"
@@ -68,17 +86,23 @@ start_audio_bridge() {
     echo -e "${YELLOW}Press Ctrl+C when your meeting is finished${NC}"
     echo ""
     
-    # Install host requirements if needed
-    echo -e "${BLUE}📦 Installing host requirements...${NC}"
-    if [ -f "requirements-host.txt" ]; then
-        pip3 install --user -q -r requirements-host.txt
-    else
-        echo -e "${YELLOW}⚠️ requirements-host.txt not found, installing basic deps${NC}"
-        pip3 install --user pyaudio requests numpy
+    # Setup virtual environment
+    if ! setup_venv; then
+        echo -e "${RED}❌ Failed to setup virtual environment${NC}"
+        exit 1
     fi
     
-    # Start the audio bridge
-    python3 src/audio/host_bridge.py --gateway-url http://192.168.50.20:9000
+    # Install host requirements if needed
+    echo -e "${BLUE}📦 Installing host requirements in virtual environment...${NC}"
+    if [ -f "requirements-host.txt" ]; then
+        pip install -q -r requirements-host.txt
+    else
+        echo -e "${YELLOW}⚠️ requirements-host.txt not found, installing basic deps${NC}"
+        pip install pyaudio requests numpy
+    fi
+    
+    # Start the audio bridge using virtual environment python
+    python src/audio/host_bridge.py --gateway-url http://192.168.50.20:9000
 }
 
 # Main execution
