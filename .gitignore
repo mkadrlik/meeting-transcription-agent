@@ -84,6 +84,10 @@ data/
 *.ogg
 *.pt
 
+# Model cache files
+cache/
+models/
+
 # Docker
 .dockerignore
 
