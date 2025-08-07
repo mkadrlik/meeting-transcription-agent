@@ -61,13 +61,41 @@ start_mcp_server() {
 setup_venv() {
     local venv_dir=".venv-host"
     
+    # Check if python3 is available
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo -e "${RED}❌ python3 not found. Please install Python 3${NC}"
+        return 1
+    fi
+    
+    # Create virtual environment if it doesn't exist
     if [ ! -d "$venv_dir" ]; then
         echo -e "${BLUE}🔧 Creating virtual environment...${NC}"
-        python3 -m venv "$venv_dir"
+        if ! python3 -m venv "$venv_dir" 2>/dev/null; then
+            echo -e "${RED}❌ Failed to create virtual environment${NC}"
+            echo -e "${YELLOW}💡 Try installing python3-venv: sudo apt install python3-venv${NC}"
+            return 1
+        fi
+    fi
+    
+    # Check if activation script exists
+    if [ ! -f "$venv_dir/bin/activate" ]; then
+        echo -e "${RED}❌ Virtual environment activation script not found${NC}"
+        echo -e "${YELLOW}💡 Removing corrupted venv and retrying...${NC}"
+        rm -rf "$venv_dir"
+        if ! python3 -m venv "$venv_dir" 2>/dev/null; then
+            echo -e "${RED}❌ Failed to recreate virtual environment${NC}"
+            return 1
+        fi
     fi
     
     echo -e "${BLUE}🔄 Activating virtual environment...${NC}"
     source "$venv_dir/bin/activate"
+    
+    # Verify activation worked
+    if [ "$VIRTUAL_ENV" = "" ]; then
+        echo -e "${RED}❌ Failed to activate virtual environment${NC}"
+        return 1
+    fi
     
     # Upgrade pip to latest version
     pip install --upgrade pip >/dev/null 2>&1
