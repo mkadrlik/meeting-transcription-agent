@@ -82,6 +82,7 @@ data/
 *.mp3
 *.flac
 *.ogg
+*.pt
 
 # Docker
 .dockerignore
