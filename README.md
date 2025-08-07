@@ -4,7 +4,6 @@ A Python MCP (Model Context Protocol) server that provides real-time meeting tra
 A Python MCP (Model Context Protocol) server that provides real-time meeting transcription capabilities with **DUAL audio capture** for Bluetooth headphones. This server runs behind a Docker MCP Gateway and integrates with various transcription services, featuring a complete host-container audio solution.
 
 ## 🎤🔊 Key Features
-## 🎤🔊 Key Features
 
 - **DUAL Audio Capture**: Captures both microphone (your voice) AND speaker output (other participants via Bluetooth)
 - **Docker Audio Solution**: Bypass container audio limitations with host-side capture + container-side processing
@@ -19,7 +18,6 @@ A Python MCP (Model Context Protocol) server that provides real-time meeting tra
 - **Flexible Configuration**: Environment-based configuration with sensible defaults
 - **Export Capabilities**: Export transcripts in JSON, TXT, and SRT formats
 
-## 🏗️ Architecture
 ## 🏗️ Architecture
 
 ### Dual Audio Capture Architecture (Recommended for Bluetooth Headphones)
@@ -135,7 +133,6 @@ docker-compose logs -f meeting-transcription
 docker-compose down
 ```
 
-### 5. Alternative: Local Development
 ### 5. Alternative: Local Development
 
 ```bash
@@ -256,7 +253,6 @@ All transcription is performed locally without requiring external API keys.
 - **Windows**: May require PulseAudio or similar audio routing
 
 ## 🛠️ API Reference
-## 🛠️ API Reference
 
 ### Available Tools
 
@@ -294,7 +290,6 @@ List all available audio input and output devices.
 
 **Parameters:** None
 
-### Client Audio Forwarding Tools (For Host Bridge)
 ### Client Audio Forwarding Tools (For Host Bridge)
 
 #### `start_client_recording`
@@ -365,12 +360,9 @@ Lists currently active recording sessions.
 Lists available audio input and output devices.
 
 ## 📝 Usage Examples
-## 📝 Usage Examples
 
 ### Basic Meeting Transcription with Dual Audio
-### Basic Meeting Transcription with Dual Audio
 
-#### Option 1: Simple One-Command Start (Recommended)
 #### Option 1: Simple One-Command Start (Recommended)
 
 ```bash
@@ -394,7 +386,6 @@ Lists available audio input and output devices.
 # 5. Begin recording both mic + speaker
 ```
 
-#### Option 2: Manual MCP Tools
 #### Option 2: Manual MCP Tools
 
 1. **List available audio devices:**
@@ -402,7 +393,6 @@ Lists available audio input and output devices.
 mcp call list_audio_devices
 ```
 
-2. **Start recording with device selection:**
 2. **Start recording with device selection:**
 ```bash
 mcp call start_recording '{
@@ -542,23 +532,16 @@ meeting-transcription-agent/
 │   │   ├── capture.py          # Direct audio capture (legacy)
 │   │   ├── host_bridge.py      # Host-side dual audio capture
 │   │   └── client_bridge.py    # Container-side audio receiver
-│   │   ├── capture.py          # Direct audio capture (legacy)
-│   │   ├── host_bridge.py      # Host-side dual audio capture
-│   │   └── client_bridge.py    # Container-side audio receiver
 │   ├── transcription/
 │   │   ├── __init__.py
-│   │   └── service.py          # Whisper transcription providers
 │   │   └── service.py          # Whisper transcription providers
 │   └── config/
 │       ├── __init__.py
 │       └── settings.py         # Configuration management
 ├── requirements.txt            # Container Python dependencies
-├── requirements-host.txt       # Host-side Python dependencies
-├── requirements.txt            # Container Python dependencies
-├── requirements-host.txt       # Host-side Python dependencies
+├── requirements-host.txt       # Host-side Python de
 ├── Dockerfile                  # Container configuration
 ├── docker-compose.yml          # Multi-service deployment
-├── start_recording.sh          # Complete recording solution
 ├── start_recording.sh          # Complete recording solution
 ├── .env.example               # Environment variables template
 └── README.md                  # This file
@@ -820,8 +803,6 @@ This MCP server is designed to work with the Docker MCP Gateway. The gateway pro
 The MCP Gateway automatically discovers and routes to the transcription server. Configuration is handled through environment variables and Docker networking.
 
 ## 🤝 Contributing
-## 🤝 Contributing
-
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -829,11 +810,9 @@ The MCP Gateway automatically discovers and routes to the transcription server. 
 5. Submit a pull request
 
 ## 📜 License
-## 📜 License
 
 This project is licensed under the MIT License. See LICENSE file for details.
 
-## 🆘 Support
 ## 🆘 Support
 
 For issues and questions:
