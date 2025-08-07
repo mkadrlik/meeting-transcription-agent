@@ -1,7 +1,7 @@
 services:
   # Meeting Transcription MCP Server
   meeting-transcription:
-    image: ghcr.io/your-username/meeting-transcription-agent:latest
+    image: ghcr.io/mkadrlik/meeting-transcription-agent:latest
     container_name: meeting-transcription-agent
     # Uncomment below to build locally instead of using GHCR image
     # build:

@@ -81,7 +81,7 @@ case "${1:-start}" in
         echo -e "${GREEN}Starting Meeting Transcription Agent...${NC}"
         docker compose up -d
         echo ""
-        echo -e "${GREEN}Services started successfully!${NC}"
+        echo -e "${GREEN}Services started successfully!${NC}"docker mcp 
         echo "- MCP Gateway: http://localhost:8080"
         echo "- Logs: docker compose logs -f"
         echo "- Status: ./scripts/run.sh status"
