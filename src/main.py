@@ -348,6 +348,67 @@ class MeetingTranscriptionServer:
                 'available_microphones': [],
                 'available_speakers': []
             }
+    
+    async def get_transcript_content_for_editor(self, session_id: str, format: str = "txt",
+                                              include_metadata: bool = False) -> str:
+        """Get transcript content formatted for VS Code editor"""
+        try:
+            # Get the final transcript
+            final_transcript = await self.transcription_service.get_final_transcript(session_id)
+            
+            if format.lower() == "txt":
+                # Return plain text - clean and ready for editor
+                content = final_transcript.get('full_text', '')
+                if include_metadata:
+                    metadata_info = f"""# Meeting Transcript - Session: {session_id}
+# Duration: {final_transcript.get('duration', 0):.1f} seconds
+# Word Count: {final_transcript.get('word_count', 0)}
+# Confidence: {final_transcript.get('confidence_average', 0):.2f}
+# Post-processed: {final_transcript.get('post_processed', False)}
+
+{content}"""
+                    return metadata_info
+                return content
+            
+            elif format.lower() == "json":
+                # Return formatted JSON
+                return json.dumps(final_transcript, indent=2)
+            
+            elif format.lower() == "srt":
+                # Return SRT subtitle format
+                return await self.transcription_service.export_transcript(session_id, "srt")
+            
+            elif format.lower() == "markdown":
+                # Return markdown format
+                content = final_transcript.get('full_text', '')
+                markdown_content = f"""# Meeting Transcript
+
+**Session ID:** {session_id}
+**Duration:** {final_transcript.get('duration', 0):.1f} seconds
+**Word Count:** {final_transcript.get('word_count', 0)}
+**Average Confidence:** {final_transcript.get('confidence_average', 0):.2f}
+**Post-processed:** {final_transcript.get('post_processed', False)}
+
+## Transcript
+
+{content}
+"""
+                if include_metadata and final_transcript.get('segments'):
+                    markdown_content += "\n\n## Segments\n\n"
+                    for i, segment in enumerate(final_transcript['segments'], 1):
+                        timestamp = segment.get('timestamp', 0)
+                        confidence = segment.get('confidence', 0)
+                        text = segment.get('text', '')
+                        markdown_content += f"**{i}.** `{timestamp:.1f}s` (confidence: {confidence:.2f}) {text}\n\n"
+                
+                return markdown_content
+            
+            else:
+                raise ValueError(f"Unsupported format: {format}")
+                
+        except Exception as e:
+            logger.error(f"Failed to get transcript content for session {session_id}: {str(e)}")
+            return f"Error retrieving transcript: {str(e)}"
 
 
 def create_server() -> Server:
@@ -371,14 +432,14 @@ def create_server() -> Server:
                         },
                         "microphone_device": {
                             "type": "string",
-                            "description": "Name or ID of the microphone device to use (optional - will prompt for selection if not provided)"
+                            "description": "Name or ID of the microphone device to use"
                         },
                         "speaker_device": {
                             "type": "string",
-                            "description": "Name or ID of the speaker device to monitor (optional - will prompt for selection if not provided)"
+                            "description": "Name or ID of the speaker device to monitor"
                         }
                     },
-                    "required": ["session_id"]
+                    "required": ["session_id", "microphone_device", "speaker_device"]
                 }
             ),
             Tool(
@@ -567,6 +628,31 @@ def create_server() -> Server:
                     },
                     "required": ["session_id"]
                 }
+            ),
+            Tool(
+                name="get_transcript_content",
+                description="Get transcript content formatted for opening in VS Code editor",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "session_id": {
+                            "type": "string",
+                            "description": "ID of the session to get transcript for"
+                        },
+                        "format": {
+                            "type": "string",
+                            "description": "Format for the transcript content",
+                            "enum": ["txt", "json", "srt", "markdown"],
+                            "default": "txt"
+                        },
+                        "include_metadata": {
+                            "type": "boolean",
+                            "description": "Include metadata like timestamps and confidence scores",
+                            "default": false
+                        }
+                    },
+                    "required": ["session_id"]
+                }
             )
         ]
     
@@ -664,6 +750,14 @@ def create_server() -> Server:
                     arguments["session_id"]
                 )
                 return [TextContent(type="text", text=json.dumps(result, indent=2))]
+            
+            elif name == "get_transcript_content":
+                result = await transcription_server.get_transcript_content_for_editor(
+                    arguments["session_id"],
+                    arguments.get("format", "txt"),
+                    arguments.get("include_metadata", False)
+                )
+                return [TextContent(type="text", text=result)]
             
             else:
                 raise ValueError(f"Unknown tool: {name}")

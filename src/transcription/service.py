@@ -84,17 +84,40 @@ class LocalWhisperProvider(TranscriptionProvider):
         """Prepare audio data for Whisper processing"""
         import tempfile
         import wave
+        import os
+        from typing import cast, Any
+        
+        if not audio_data:
+            raise ValueError("Audio data cannot be empty")
+        
+        if sample_rate <= 0:
+            raise ValueError("Sample rate must be positive")
         
         # Create temporary file
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
         
-        # Write WAV file
-        with wave.open(temp_path, 'wb') as wav_file:
-            wav_file.setnchannels(1)
-            wav_file.setsampwidth(2)
-            wav_file.setframerate(sample_rate)
-            wav_file.writeframes(audio_data)
+        try:
+            # Write WAV file - when opened with 'wb', wave.open returns a Wave_write object
+            wav_writer = wave.open(temp_path, 'wb')
+            # Cast to Any to avoid type checker issues with Wave_write methods
+            wav_writer = cast(Any, wav_writer)
+            
+            try:
+                wav_writer.setnchannels(1)  # Set to mono
+                wav_writer.setsampwidth(2)  # 16-bit audio (2 bytes per sample)
+                wav_writer.setframerate(sample_rate)  # Set sample rate
+                wav_writer.writeframes(audio_data)
+            finally:
+                wav_writer.close()
+                
+        except Exception as e:
+            # Clean up temp file if writing failed
+            try:
+                os.unlink(temp_path)
+            except Exception:
+                pass
+            raise RuntimeError(f"Failed to create WAV file: {str(e)}") from e
         
         return temp_path
     
@@ -104,7 +127,16 @@ class LocalWhisperProvider(TranscriptionProvider):
             if not self.model:
                 raise RuntimeError("Whisper model not loaded")
             
+            if not audio_data:
+                logger.warning("Empty audio data provided for transcription")
+                return TranscriptionResult(text="", confidence=0.0)
+            
             sample_rate = session_config.get('sample_rate', 16000)
+            
+            # Validate sample rate
+            if sample_rate <= 0:
+                logger.warning(f"Invalid sample rate {sample_rate}, using default 16000")
+                sample_rate = 16000
             
             # Prepare audio file
             audio_file = self._prepare_audio_for_whisper(audio_data, sample_rate)
@@ -127,8 +159,8 @@ class LocalWhisperProvider(TranscriptionProvider):
                 import os
                 try:
                     os.unlink(audio_file)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to clean up temp file {audio_file}: {str(e)}")
                     
         except Exception as e:
             logger.error(f"Local Whisper transcription error: {str(e)}")

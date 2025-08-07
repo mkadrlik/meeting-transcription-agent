@@ -26,6 +26,7 @@ registry:
       - name: get_audio_instructions
       - name: export_transcript
       - name: list_exported_transcripts
+      - name: get_transcript_content
     secrets: []
     env:
       - name: WHISPER_MODEL_SIZE
