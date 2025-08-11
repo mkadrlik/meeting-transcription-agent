@@ -2,8 +2,8 @@
 """
 Meeting Transcription Agent MCP Server
 
-This MCP server provides tools for capturing and transcribing meeting audio
-from user-selected microphones and speakers.
+This MCP server provides tools for receiving and transcribing meeting audio
+from clients.
 """
 
 import asyncio
@@ -19,7 +19,6 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Resource, Tool, TextContent
 import mcp.types as types
 
-from .audio.capture import AudioCapture
 from .audio.client_bridge import ClientAudioBridge, ClientAudioInstructions
 from .transcription.service import TranscriptionService
 from .config.settings import Settings
@@ -31,112 +30,10 @@ logger = logging.getLogger(__name__)
 class MeetingTranscriptionServer:
     def __init__(self):
         self.settings = Settings()
-        self.audio_capture = AudioCapture(self.settings)
         self.client_bridge = ClientAudioBridge()
         self.transcription_service = TranscriptionService(self.settings)
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
         
-    async def start_recording_session(self, session_id: str, audio_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Start a new recording session"""
-        try:
-            # Validate audio configuration
-            microphone_device = audio_config.get('microphone_device')
-            speaker_device = audio_config.get('speaker_device')
-            
-            if not microphone_device:
-                raise ValueError("Microphone device must be specified")
-            if not speaker_device:
-                raise ValueError("Speaker device must be specified")
-            
-            # Get audio parameters from environment/settings with defaults
-            sample_rate = self.settings.get('DEFAULT_SAMPLE_RATE', 16000)
-            channels = self.settings.get('DEFAULT_CHANNELS', 1)
-            chunk_duration = self.settings.get('DEFAULT_CHUNK_DURATION', 30)
-            
-            # Initialize audio capture for this session
-            session_config = {
-                'session_id': session_id,
-                'microphone_device': microphone_device,
-                'speaker_device': speaker_device,
-                'sample_rate': int(sample_rate),
-                'channels': int(channels),
-                'chunk_duration': int(chunk_duration)
-            }
-            
-            # Start audio capture
-            audio_stream = await self.audio_capture.start_capture(session_config)
-            
-            # Store session information
-            self.active_sessions[session_id] = {
-                'config': session_config,
-                'audio_stream': audio_stream,
-                'transcripts': [],
-                'status': 'recording',
-                'start_time': asyncio.get_event_loop().time()
-            }
-            
-            logger.info(f"Started recording session {session_id}")
-            return {
-                'session_id': session_id,
-                'status': 'recording',
-                'message': 'Recording session started successfully'
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to start recording session {session_id}: {str(e)}")
-            raise
-    
-    async def stop_recording_session(self, session_id: str) -> Dict[str, Any]:
-        """Stop a recording session and return final transcript"""
-        try:
-            if session_id not in self.active_sessions:
-                raise ValueError(f"Session {session_id} not found")
-            
-            session = self.active_sessions[session_id]
-            
-            # Stop audio capture
-            await self.audio_capture.stop_capture(session['audio_stream'])
-            
-            # Get final transcript
-            final_transcript = await self.transcription_service.get_final_transcript(session_id)
-            
-            # Update session status
-            session['status'] = 'completed'
-            session['final_transcript'] = final_transcript
-            session['end_time'] = asyncio.get_event_loop().time()
-            
-            logger.info(f"Stopped recording session {session_id}")
-            return {
-                'session_id': session_id,
-                'status': 'completed',
-                'transcript': final_transcript,
-                'duration': session['end_time'] - session['start_time']
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to stop recording session {session_id}: {str(e)}")
-            raise
-    
-    async def get_session_status(self, session_id: str) -> Dict[str, Any]:
-        """Get the current status of a recording session"""
-        if session_id not in self.active_sessions:
-            raise ValueError(f"Session {session_id} not found")
-        
-        session = self.active_sessions[session_id]
-        current_time = asyncio.get_event_loop().time()
-        
-        return {
-            'session_id': session_id,
-            'status': session['status'],
-            'duration': current_time - session['start_time'],
-            'transcript_count': len(session['transcripts']),
-            'config': session['config']
-        }
-    
-    async def list_audio_devices(self) -> Dict[str, Union[List[Dict[str, Any]], str]]:
-        """List available audio input and output devices"""
-        return self.audio_capture.list_devices()
-    
     def start_client_recording(self, session_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """Start a client-side recording session that receives audio from the client"""
         return self.client_bridge.start_client_recording(session_id, config)
@@ -295,60 +192,6 @@ class MeetingTranscriptionServer:
                 'total_size_bytes': 0
             }
     
-    async def get_device_selection_options(self, session_id: str) -> Dict[str, Any]:
-        """Get available audio devices formatted for easy selection"""
-        try:
-            devices = self.audio_capture.list_devices()
-            
-            input_devices = devices.get('input_devices', [])
-            output_devices = devices.get('output_devices', [])
-            
-            # Format for easy selection
-            microphone_options = []
-            for i, device in enumerate(input_devices):
-                if isinstance(device, dict):
-                    device_name = device.get('name', f'Unknown Input Device {i}')
-                    device_id = device.get('id', device_name)
-                    microphone_options.append({
-                        'id': device_id,
-                        'name': device_name,
-                        'description': device.get('description', ''),
-                        'selection_example': f'start_recording {{"session_id": "{session_id}", "microphone_device": "{device_id}", "speaker_device": "<speaker_id>"}}'
-                    })
-            
-            speaker_options = []
-            for i, device in enumerate(output_devices):
-                if isinstance(device, dict):
-                    device_name = device.get('name', f'Unknown Output Device {i}')
-                    device_id = device.get('id', device_name)
-                    speaker_options.append({
-                        'id': device_id,
-                        'name': device_name,
-                        'description': device.get('description', ''),
-                        'selection_example': f'start_recording {{"session_id": "{session_id}", "microphone_device": "<microphone_id>", "speaker_device": "{device_id}"}}'
-                    })
-            
-            return {
-                'session_id': session_id,
-                'available_microphones': microphone_options,
-                'available_speakers': speaker_options,
-                'workflow_instructions': {
-                    'step1': 'Choose a microphone from available_microphones list',
-                    'step2': 'Choose a speaker from available_speakers list',
-                    'step3': 'Call start_recording again with both device IDs specified'
-                },
-                'usage_note': 'Copy the device "id" field from your selected devices and use them in the start_recording call'
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to get device selection options: {str(e)}")
-            return {
-                'session_id': session_id,
-                'error': str(e),
-                'available_microphones': [],
-                'available_speakers': []
-            }
-    
     async def get_transcript_content_for_editor(self, session_id: str, format: str = "txt",
                                               include_metadata: bool = False) -> str:
         """Get transcript content formatted for VS Code editor"""
@@ -420,64 +263,6 @@ def create_server() -> Server:
     async def list_tools() -> List[Tool]:
         """List available tools"""
         return [
-            Tool(
-                name="start_recording",
-                description="Start a new meeting recording session with specified audio devices",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "session_id": {
-                            "type": "string",
-                            "description": "Unique identifier for the recording session"
-                        },
-                        "microphone_device": {
-                            "type": "string",
-                            "description": "Name or ID of the microphone device to use"
-                        },
-                        "speaker_device": {
-                            "type": "string",
-                            "description": "Name or ID of the speaker device to monitor"
-                        }
-                    },
-                    "required": ["session_id", "microphone_device", "speaker_device"]
-                }
-            ),
-            Tool(
-                name="stop_recording",
-                description="Stop a recording session and get the final transcript",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "session_id": {
-                            "type": "string",
-                            "description": "ID of the session to stop"
-                        }
-                    },
-                    "required": ["session_id"]
-                }
-            ),
-            Tool(
-                name="get_session_status",
-                description="Get the current status of a recording session",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "session_id": {
-                            "type": "string",
-                            "description": "ID of the session to check"
-                        }
-                    },
-                    "required": ["session_id"]
-                }
-            ),
-            Tool(
-                name="list_audio_devices",
-                description="List all available audio input and output devices",
-                inputSchema={
-                    "type": "object",
-                    "properties": {}
-                }
-            ),
             Tool(
                 name="start_client_recording",
                 description="Start a client-side recording session that receives audio from the client",
@@ -616,20 +401,6 @@ def create_server() -> Server:
                 }
             ),
             Tool(
-                name="get_device_selection_options",
-                description="Get available audio devices for selection before starting recording",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "session_id": {
-                            "type": "string",
-                            "description": "Session ID for the planned recording"
-                        }
-                    },
-                    "required": ["session_id"]
-                }
-            ),
-            Tool(
                 name="get_transcript_content",
                 description="Get transcript content formatted for opening in VS Code editor",
                 inputSchema={
@@ -660,47 +431,7 @@ def create_server() -> Server:
     async def call_tool(name: str, arguments: Dict[str, Any]) -> List[Union[types.TextContent, types.ImageContent, types.EmbeddedResource]]:
         """Handle tool calls"""
         try:
-            if name == "start_recording":
-                session_id = arguments["session_id"]
-                microphone_device = arguments.get("microphone_device")
-                speaker_device = arguments.get("speaker_device")
-                
-                # Check if we need to provide device selection options
-                if not microphone_device or not speaker_device:
-                    device_options = await transcription_server.get_device_selection_options(session_id)
-                    
-                    missing_devices = []
-                    if not microphone_device:
-                        missing_devices.append("microphone_device")
-                    if not speaker_device:
-                        missing_devices.append("speaker_device")
-                    
-                    device_options['error'] = f"Missing required parameters: {', '.join(missing_devices)}"
-                    device_options['message'] = "Please select devices from the available options below and call start_recording again with the selected device IDs."
-                    
-                    return [TextContent(type="text", text=json.dumps(device_options, indent=2))]
-                
-                # Both devices provided, proceed with recording
-                result = await transcription_server.start_recording_session(session_id, arguments)
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
-            
-            elif name == "stop_recording":
-                result = await transcription_server.stop_recording_session(
-                    arguments["session_id"]
-                )
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
-            
-            elif name == "get_session_status":
-                result = await transcription_server.get_session_status(
-                    arguments["session_id"]
-                )
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
-            
-            elif name == "list_audio_devices":
-                result = await transcription_server.list_audio_devices()
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
-            
-            elif name == "start_client_recording":
+            if name == "start_client_recording":
                 result = transcription_server.start_client_recording(
                     arguments["session_id"],
                     arguments
@@ -745,12 +476,6 @@ def create_server() -> Server:
                 result = await transcription_server.list_exported_transcripts(exports_dir)
                 return [TextContent(type="text", text=json.dumps(result, indent=2))]
             
-            elif name == "get_device_selection_options":
-                result = await transcription_server.get_device_selection_options(
-                    arguments["session_id"]
-                )
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
-            
             elif name == "get_transcript_content":
                 result = await transcription_server.get_transcript_content_for_editor(
                     arguments["session_id"],
@@ -778,12 +503,6 @@ def create_server() -> Server:
                 name="Active Recording Sessions",
                 description="List of currently active recording sessions",
                 mimeType="application/json"
-            ),
-            Resource(
-                uri="meeting://devices/audio",  # type: ignore
-                name="Audio Devices",
-                description="Available audio input and output devices",
-                mimeType="application/json"
             )
         ]
     
@@ -800,10 +519,6 @@ def create_server() -> Server:
                 for session_id, session in transcription_server.active_sessions.items()
             }
             return json.dumps(active_sessions, indent=2)
-        
-        elif uri == "meeting://devices/audio":
-            devices = await transcription_server.list_audio_devices()
-            return json.dumps(devices, indent=2)
         
         else:
             raise ValueError(f"Unknown resource: {uri}")

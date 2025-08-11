@@ -1,0 +1,4 @@
+audio hook local
+Push recording to whisper to transcribe - faster-whisper**, whisperx - SET LANG TO EN
+send transcription to MCP server to convert to documentation
+Send docuemntation to Confluence

@@ -4,8 +4,6 @@ FROM python:3.11-slim
 
 # Install system dependencies for audio processing and Whisper
 RUN apt-get update && apt-get install -y \
-    portaudio19-dev \
-    python3-pyaudio \
     alsa-utils \
     pulseaudio \
     ffmpeg \

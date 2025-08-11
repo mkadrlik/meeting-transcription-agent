@@ -16,7 +16,7 @@ setup(
     version="0.1.0",
     author="Meeting Transcription Agent",
     author_email="",
-    description="MCP Server for meeting transcription with audio capture",
+    description="MCP Server for meeting transcription with client audio forwarding",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/your-org/meeting-transcription-agent",
@@ -25,7 +25,6 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "Topic :: Multimedia :: Sound/Audio :: Capture/Recording",
         "Topic :: Multimedia :: Sound/Audio :: Speech",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
