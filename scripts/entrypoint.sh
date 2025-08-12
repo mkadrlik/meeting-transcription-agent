@@ -10,10 +10,19 @@ echo "🎤 Meeting Transcription Agent - Starting..."
 export HF_HOME=/app/.cache
 export TRANSFORMERS_CACHE=/app/.cache
 export WHISPER_CACHE_DIR=/app/.cache/whisper
+export TORCH_HOME=/app/.cache/torch
 export HOME=/app
 
+# Set environment variables to prevent PyTorch ARM64 issues
+export PYTORCH_DISABLE_CUDNN_WARNINGS=1
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
 # Ensure cache directories exist and are writable
-mkdir -p /app/.cache/whisper
+mkdir -p /app/.cache/whisper /app/.cache/torch
 chmod -R 755 /app/.cache
 
 echo "📁 Cache directories configured:"

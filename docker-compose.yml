@@ -42,6 +42,15 @@ services:
       
       # MCP Gateway connection (external)
       - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://192.168.50.20:8811}
+      
+      # PyTorch CPU-only configuration to prevent ARM64 issues
+      - PYTORCH_DISABLE_CUDNN_WARNINGS=1
+      - OMP_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - VECLIB_MAXIMUM_THREADS=1
+      - NUMEXPR_NUM_THREADS=1
+      - TORCH_HOME=/app/.cache/torch
     volumes:
       # Mount logs directory
       - /DATA/san-raid5/AppData/meeting-transcription-agent/logs:/app/logs

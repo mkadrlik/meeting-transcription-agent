@@ -32,6 +32,10 @@ for i in {1..30}; do
     fi
 done
 
+# Test PyTorch compatibility
+echo "🧪 Testing PyTorch compatibility..."
+docker compose exec meeting-transcription python scripts/test-pytorch.py
+
 # Test Whisper model
 echo "🧪 Testing Whisper model..."
 docker compose exec meeting-transcription python scripts/test-whisper.py
