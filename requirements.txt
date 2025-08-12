@@ -1,8 +1,6 @@
 # Core MCP dependencies
 mcp>=1.0.0
 
-# Audio processing
-# PyAudio>=0.2.11  # Not needed for server (client-side audio forwarding)
 numpy>=1.24.0
 
 # Local Whisper transcription (CPU-only)

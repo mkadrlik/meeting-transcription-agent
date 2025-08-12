@@ -16,6 +16,7 @@ services:
       
       # Disable direct audio device access (use client bridge instead)  
       - DISABLE_AUDIO_CAPTURE=true
+      - CLIENT_AUDIO_FORWARDING_ONLY=true
       
       # Local Whisper configuration
       - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
@@ -40,15 +41,14 @@ services:
       - LOG_FILE=/app/logs/transcription.log
       
       # MCP Gateway connection (external)
-      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://192.168.50.20:9000}
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://192.168.50.20:8811}
     volumes:
       # Mount logs directory
-      - ./logs:/app/logs
+      - /DATA/san-raid5/AppData/meeting-transcription-agent/logs:/app/logs
       # Mount data directory for session storage
-      - ./data:/app/data
+      - /DATA/san-raid5/AppData/meeting-transcription-agent/data:/app/data
       # Mount cache directory for Whisper models (writable)
-      - ./cache:/app/.cache
-    # Remove all audio device access - use host bridge instead
+      - /DATA/san-raid5/AppData/meeting-transcription-agent/cache:/app/cache
     user: "1000:1000"  # Standard user without audio group
     restart: unless-stopped
     healthcheck:

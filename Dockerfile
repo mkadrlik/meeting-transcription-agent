@@ -2,10 +2,8 @@
 
 FROM python:3.11-slim
 
-# Install system dependencies for audio processing and Whisper
+# Install system dependencies for Whisper processing only
 RUN apt-get update && apt-get install -y \
-    alsa-utils \
-    pulseaudio \
     ffmpeg \
     build-essential \
     git \
@@ -17,15 +15,15 @@ WORKDIR /app
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies (excluding PyAudio for client-forwarding mode)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY src/ ./src/
 COPY *.py ./
 
-# Create directories for logs and data
-RUN mkdir -p /app/logs /app/data
+# Create directories for logs, data, and cache
+RUN mkdir -p /app/logs /app/data /app/.cache
 
 # Set environment variables
 ENV PYTHONPATH=/app
