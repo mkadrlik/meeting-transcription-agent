@@ -72,8 +72,9 @@ class LocalWhisperProvider(TranscriptionProvider):
         """Load the Whisper model"""
         try:
             if whisper is not None:
+                logger.info(f"Loading Whisper model: {self.model_size}")
                 self.model = whisper.load_model(self.model_size)
-                logger.info(f"Loaded Whisper model: {self.model_size}")
+                logger.info(f"Successfully loaded Whisper model: {self.model_size}")
             else:
                 raise RuntimeError("Whisper module not available")
         except Exception as e:
@@ -221,30 +222,7 @@ Cleaned transcript:"""
             logger.error(f"Ollama post-processing error: {str(e)}")
             return raw_transcript
 
-class MockTranscriptionProvider(TranscriptionProvider):
-    """Mock transcription provider for testing"""
-    
-    async def transcribe_audio(self, audio_data: bytes, session_config: Dict[str, Any]) -> TranscriptionResult:
-        """Return mock transcription result"""
-        timestamp = time.time()
-        
-        # Generate mock text based on timestamp
-        mock_texts = [
-            "This is a mock transcription of the meeting audio.",
-            "The speaker is discussing important topics.",
-            "Please note that this is simulated transcription output.",
-            "Real transcription would require actual audio processing.",
-            "Mock audio chunk processed successfully."
-        ]
-        
-        text_index = int(timestamp) % len(mock_texts)
-        mock_text = mock_texts[text_index]
-        
-        return TranscriptionResult(
-            text=mock_text,
-            confidence=0.95,
-            timestamp=timestamp
-        )
+
 
 class TranscriptionService:
     """Main transcription service that manages providers and sessions"""
@@ -260,21 +238,20 @@ class TranscriptionService:
     
     def _initialize_providers(self) -> None:
         """Initialize available transcription providers"""
-        # Try to initialize Local Whisper provider
-        if WHISPER_LOCAL_AVAILABLE:
-            try:
-                whisper_model = self.settings.get('WHISPER_MODEL_SIZE', 'base')
-                self.providers['whisper_local'] = LocalWhisperProvider(whisper_model)
-                logger.info(f"Local Whisper provider initialized with model: {whisper_model}")
-            except Exception as e:
-                logger.warning(f"Failed to initialize Local Whisper provider: {str(e)}")
+        # Initialize Local Whisper provider (required)
+        if not WHISPER_LOCAL_AVAILABLE:
+            raise RuntimeError("Whisper library is required but not available. Please install openai-whisper.")
         
-        # Always have a mock provider available
-        self.providers['mock'] = MockTranscriptionProvider()
-        logger.info("Mock transcription provider initialized")
+        try:
+            whisper_model = self.settings.get('WHISPER_MODEL_SIZE', 'base')
+            self.providers['whisper_local'] = LocalWhisperProvider(whisper_model)
+            logger.info(f"Local Whisper provider initialized with model: {whisper_model}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Local Whisper provider: {str(e)}")
+            raise RuntimeError(f"Whisper provider initialization failed: {str(e)}")
         
         if not self.providers:
-            logger.warning("No transcription providers available")
+            raise RuntimeError("No transcription providers available")
     
     def _initialize_post_processor(self) -> None:
         """Initialize Ollama post-processor if configured"""
@@ -294,10 +271,7 @@ class TranscriptionService:
     
     def get_default_provider(self) -> str:
         """Get the default/best available provider"""
-        if 'whisper_local' in self.providers:
-            return 'whisper_local'
-        else:
-            return 'mock'
+        return 'whisper_local'
     
     async def transcribe_audio_chunk(self, session_id: str, audio_data: bytes, 
                                    session_config: Dict[str, Any]) -> TranscriptionResult:

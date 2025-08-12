@@ -99,6 +99,15 @@ python -m src.main
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `WHISPER_MODEL_SIZE` | Local Whisper model size (tiny/base/small/medium/large) | base | No |
+
+### Whisper Model Initialization
+
+The container automatically downloads and caches the Whisper model during startup:
+
+- **Build Time**: Model is pre-downloaded during Docker image build
+- **Runtime**: Entrypoint script verifies model availability before starting MCP server
+- **Cache Location**: Models are cached in `/app/.cache/whisper` (mounted to host for persistence)
+- **Supported Models**: tiny, base, small, medium, large (base recommended for balance of speed/accuracy)
 | `OLLAMA_URL` | Ollama server URL for transcript post-processing | - | No |
 | `OLLAMA_MODEL` | Ollama model name for post-processing | llama2 | No |
 | `DEFAULT_SAMPLE_RATE` | Audio sample rate (Hz) | 16000 | No |

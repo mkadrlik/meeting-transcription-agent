@@ -48,14 +48,15 @@ services:
       # Mount data directory for session storage
       - /DATA/san-raid5/AppData/meeting-transcription-agent/data:/app/data
       # Mount cache directory for Whisper models (writable)
-      - /DATA/san-raid5/AppData/meeting-transcription-agent/cache:/app/cache
+      - /DATA/san-raid5/AppData/meeting-transcription-agent/cache:/app/.cache
     user: "1000:1000"  # Standard user without audio group
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import whisper; import os; whisper.load_model(os.getenv('WHISPER_MODEL_SIZE', 'base')); print('Whisper model ready')"]
       interval: 30s
-      timeout: 10s
+      timeout: 30s
       retries: 3
+      start_period: 60s
     # Use host networking to connect to external MCP Gateway
     network_mode: "bridge"
     extra_hosts:
