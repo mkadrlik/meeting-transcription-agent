@@ -3,7 +3,7 @@ displayName: Docker MCP Custom Catalog
 registry:
   meeting-transcription-agent:
     description: High-performance audio transcription using faster-whisper. Simple 6-tool API for session-based transcription with automatic file output to /app/data/transcriptions/.
-    title: Fast Whisper MCP Server
+    title: Meeting Transcription Agent MCP Server
     type: server
     dateAdded: "2025-08-06T16:12:00Z"
     image: ghcr.io/mkadrlik/meeting-transcription-agent:latest

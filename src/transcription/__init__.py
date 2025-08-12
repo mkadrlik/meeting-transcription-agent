@@ -1,7 +1,7 @@
 """
-Transcription service module for meeting transcription
+Meeting Transcription Agent service
 """
 
-from .service import TranscriptionService, TranscriptionResult, TranscriptionProvider
+from .service import MeetingTranscriptionService
 
-__all__ = ['TranscriptionService', 'TranscriptionResult', 'TranscriptionProvider']
+__all__ = ['MeetingTranscriptionService']

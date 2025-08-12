@@ -1,5 +1,7 @@
 """
-Audio capture module for meeting transcription
+Audio instructions for client-side capture
 """
 
-__all__ = []
+from .client_bridge import AudioInstructions
+
+__all__ = ['AudioInstructions']

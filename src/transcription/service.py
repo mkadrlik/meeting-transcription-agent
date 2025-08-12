@@ -15,15 +15,51 @@ from faster_whisper import WhisperModel
 
 logger = logging.getLogger(__name__)
 
-class FastWhisperService:
+class MeetingTranscriptionService:
     """Simplified transcription service using faster-whisper"""
     
     def __init__(self):
         self.model_size = os.getenv('WHISPER_MODEL_SIZE', 'base')
         self.model: Optional[WhisperModel] = None
-        self.transcriptions_dir = Path('/app/data/transcriptions')
-        self.transcriptions_dir.mkdir(parents=True, exist_ok=True)
+        # Try host-mounted directory first, then fall back to internal directory
+        self._setup_transcriptions_dir()
         self._load_model()
+    
+    def _setup_transcriptions_dir(self) -> None:
+        """Setup transcriptions directory, trying host-mounted first, then internal fallback"""
+        # Try host-mounted directory first
+        host_dir = Path('/app/host-data/transcriptions')
+        if self._try_directory(host_dir):
+            self.transcriptions_dir = host_dir
+            logger.info(f"Using host-mounted transcriptions directory: {self.transcriptions_dir}")
+            return
+            
+        # Fall back to internal directory
+        internal_dir = Path('/app/data/transcriptions')
+        if self._try_directory(internal_dir):
+            self.transcriptions_dir = internal_dir
+            logger.info(f"Using internal transcriptions directory: {self.transcriptions_dir}")
+            return
+            
+        # Last resort: temporary directory
+        import tempfile
+        self.transcriptions_dir = Path(tempfile.mkdtemp(prefix="transcriptions_"))
+        logger.warning(f"Using temporary directory: {self.transcriptions_dir}")
+        logger.warning("Host directory permissions issue - transcriptions will not persist")
+    
+    def _try_directory(self, directory: Path) -> bool:
+        """Try to create and write to a directory, return True if successful"""
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            test_file = directory / ".write_test"
+            test_file.write_text("test")
+            test_file.unlink()
+            return True
+        except (PermissionError, OSError):
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error testing directory {directory}: {e}")
+            return False
     
     def _load_model(self) -> None:
         """Load the faster-whisper model"""

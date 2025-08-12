@@ -14,17 +14,17 @@ from mcp.server.stdio import stdio_server
 from mcp.types import TextContent
 import mcp.types as types
 
-from .transcription.service import FastWhisperService
+from transcription.service import MeetingTranscriptionService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class FastWhisperMCPServer:
+class MeetingTranscriptionAgentServer:
     """Simplified MCP server for fast whisper transcription"""
     
     def __init__(self):
-        self.whisper_service = FastWhisperService()
+        self.whisper_service = MeetingTranscriptionService()
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
     
     def start_session(self, session_id: str) -> Dict[str, Any]:
@@ -101,7 +101,7 @@ class FastWhisperMCPServer:
 def create_server() -> Server:
     """Create and configure the MCP server"""
     server = Server("fast-whisper-transcription")
-    whisper_server = FastWhisperMCPServer()
+    whisper_server = MeetingTranscriptionAgentServer()
     
     @server.list_tools()
     async def list_tools() -> List[types.Tool]:
@@ -233,7 +233,7 @@ def create_server() -> Server:
 
 async def main():
     """Main entry point"""
-    logger.info("Starting Fast Whisper MCP Server...")
+    logger.info("Starting Meeting Transcription Agent MCP Server...")
     
     # Initialize server
     server = create_server()

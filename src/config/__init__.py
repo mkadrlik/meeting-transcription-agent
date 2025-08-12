@@ -1,5 +1,5 @@
 """
-Configuration module for meeting transcription agent
+Simple configuration for fast whisper MCP server
 """
 
 from .settings import Settings
