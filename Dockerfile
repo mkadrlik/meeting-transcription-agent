@@ -16,7 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code and scripts
 COPY src/ ./src/
 COPY fix-permissions.sh /usr/local/bin/fix-permissions.sh
-RUN chmod +x /usr/local/bin/fix-permissions.sh
+COPY server-entrypoint.sh /usr/local/bin/server-entrypoint.sh
+RUN chmod +x /usr/local/bin/fix-permissions.sh /usr/local/bin/server-entrypoint.sh
 
 # Set environment variables
 ENV PYTHONPATH=/app

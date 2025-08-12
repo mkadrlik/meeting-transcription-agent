@@ -11,15 +11,11 @@ services:
       # Mount data directory for transcriptions
       - /DATA/san-raid5/AppData/meeting-transcription-agent/data:/app/host-data
     # user: "1000:1000"  # Removed - container starts as root to fix permissions, then switches to 1000:1000
-    restart: unless-stopped
+    # restart: unless-stopped  # MCP servers should exit when no client is connected
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "from faster_whisper import WhisperModel; print('Meeting Transcription Agent ready')",
-        ]
+      # Simple healthcheck that verifies dependencies are available
+      test: ["CMD", "python", "-c", "import faster_whisper; print('Dependencies OK')"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 2
+      start_period: 30s
