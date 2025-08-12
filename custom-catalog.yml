@@ -2,8 +2,8 @@ name: custom-catalog
 displayName: Docker MCP Custom Catalog
 registry:
   meeting-transcription-agent:
-    description: Local CPU-only meeting transcription with client-side audio forwarding and server-side processing. Features local Whisper models and optional Ollama post-processing for enhanced transcripts. Supports both direct device access and client audio forwarding.
-    title: Meeting Transcription Agent
+    description: High-performance audio transcription using faster-whisper. Simple 6-tool API for session-based transcription with automatic file output to /app/data/transcriptions/.
+    title: Fast Whisper MCP Server
     type: server
     dateAdded: "2025-08-06T16:12:00Z"
     image: ghcr.io/mkadrlik/meeting-transcription-agent:latest
@@ -14,19 +14,12 @@ registry:
     upstream: https://github.com/mkadrlik/meeting-transcription-agent
     icon: ""
     tools:
-      - name: start_recording
-      - name: stop_recording
+      - name: start_session
+      - name: add_audio_chunk
+      - name: transcribe_session
       - name: get_session_status
-      - name: list_audio_devices
-      - name: get_device_selection_options
-      - name: start_client_recording
-      - name: send_audio_chunk
-      - name: stop_client_recording
-      - name: get_client_session_status
-      - name: get_audio_instructions
-      - name: export_transcript
-      - name: list_exported_transcripts
-      - name: get_transcript_content
+      - name: list_transcriptions
+      - name: get_transcription
     secrets: []
     env:
       - name: WHISPER_MODEL_SIZE

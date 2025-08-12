@@ -1,113 +1,53 @@
-# Meeting Transcription Agent MCP Server
+# Fast Whisper MCP Server
 
-A Python MCP (Model Context Protocol) server that provides real-time meeting transcription capabilities with client-side audio forwarding. This server runs behind a Docker MCP Gateway and integrates with various transcription services.
+A simplified Python MCP (Model Context Protocol) server for high-performance audio transcription using faster-whisper. Designed for speed, simplicity, and developer experience.
 
-## 🎤 Key Features
+## 🚀 Key Features
 
-- **Client Audio Forwarding**: Receive audio data from web browsers and desktop applications
-- **Docker Integration**: Runs seamlessly behind Docker MCP Gateway
-- **Local CPU-only Transcription**: Uses local Whisper models without requiring external APIs
-- **Ollama Post-Processing**: Enhances transcripts using your self-hosted Ollama instance
-- **Session Management**: Handle multiple concurrent recording sessions
-- **Flexible Configuration**: Environment-based configuration with sensible defaults
-- **Export Capabilities**: Export transcripts in JSON, TXT, and SRT formats
+- **Fast Transcription**: Uses faster-whisper for 4x speed improvement over OpenAI Whisper
+- **Simple API**: Just 6 MCP tools for complete transcription workflow
+- **File Output**: Automatically saves transcriptions to `/app/data/transcriptions/`
+- **Client Audio Support**: Accepts base64-encoded audio from any client
+- **Minimal Dependencies**: Streamlined for fast deployment and reliability
 
-## 🏗️ Architecture
+## 🏗️ Simple Workflow
 
-### Client Audio Forwarding Architecture
-
-The system uses a **client-server architecture** where audio is captured on the client side and forwarded to the server for transcription:
-
-```
-┌─────────────────────┐    HTTP/MCP     ┌──────────────────────────┐
-│   CLIENT            │    Request      │    DOCKER CONTAINER      │
-│                     │ ──────────────> │                          │
-│ Audio Capture       │                 │                          │
-│   ↓                 │                 │ MCP Server Tools         │
-│ Base64 Audio Data   │                 │   ↓                      │
-│   ↓                 │ <────────────── │ Transcription Service    │
-│                     │    Transcript   │   ↓                      │
-└─────────────────────┘                 │ Whisper AI Processing    │
-                                        │                          │
-                                        └──────────────────────────┘
-```
-
-### Data Flow:
-1. **Client audio capture** → Web browser or desktop application
-2. **Base64 encoding** → Audio data encoded for transmission
-3. **MCP tools** → `client_bridge.py` (receives/stores audio)
-4. **Audio buffer** → Transcription service
-5. **Whisper AI** → Text transcript
-6. **HTTP response** → Back to client with results
-
-### Why This Architecture:
-
-#### **Benefits:**
-- ✅ Works with any audio source accessible to the client
-- ✅ No complex audio device setup on the server
-- ✅ Cross-platform compatibility
-- ✅ Bypasses Docker audio limitations
-- ✅ Secure - audio data is only accessible to the client that sends it
-
+1. **Start Session**: `start_session(session_id)`
+2. **Send Audio**: `add_audio_chunk(session_id, base64_audio)`
+3. **Transcribe**: `transcribe_session(session_id)` → saves to `/app/data/transcriptions/`
+4. **Retrieve**: `get_transcription(filename)` or `list_transcriptions()`
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Docker and Docker Compose
-- Python 3.11+ (for client-side audio capture)
-
-### 1. Clone and Setup
-
 ```bash
-cd ~/source/meeting-transcription-agent/
-```
-
-### 2. Configure Environment Variables
-
-```bash
-cp .env.example .env
-# Edit .env file with your API keys and preferences
-```
-
-### 3. Start Server
-
-```bash
-# Start just the Docker container
-docker-compose up -d
+# Start the server
+docker compose up -d
 
 # View logs
-docker-compose logs -f meeting-transcription
+docker compose logs -f
 
-# Stop services
-docker-compose down
-```
-
-### 4. Alternative: Local Development
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the MCP server directly
-python -m src.main
+# Test the service
+docker compose exec fast-whisper-mcp python scripts/test.py
 ```
 
 ## ⚙️ Configuration
 
-### Environment Variables
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `WHISPER_MODEL_SIZE` | Model size (tiny/base/small/medium/large) | base |
+| `LOG_LEVEL` | Logging level | INFO |
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `WHISPER_MODEL_SIZE` | Local Whisper model size (tiny/base/small/medium/large) | base | No |
+## 📁 Output
 
-### Whisper Model Initialization
+Transcriptions are automatically saved to:
+- **Container**: `/app/data/transcriptions/`
+- **Host**: `/DATA/san-raid5/AppData/meeting-transcription-agent/data/transcriptions/`
 
-The container automatically downloads and caches the Whisper model during startup:
-
-- **Build Time**: Model is pre-downloaded during Docker image build
-- **Runtime**: Entrypoint script verifies model availability before starting MCP server
-- **Cache Location**: Models are cached in `/app/.cache/whisper` (mounted to host for persistence)
-- **Supported Models**: tiny, base, small, medium, large (base recommended for balance of speed/accuracy)
+Each transcription includes:
+- Full text
+- Timestamped segments
+- Language detection
+- Confidence scores
+- Word count and duration
 | `OLLAMA_URL` | Ollama server URL for transcript post-processing | - | No |
 | `OLLAMA_MODEL` | Ollama model name for post-processing | llama2 | No |
 | `DEFAULT_SAMPLE_RATE` | Audio sample rate (Hz) | 16000 | No |
